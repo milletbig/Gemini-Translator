@@ -15,16 +15,21 @@ def load_config():
     if not os.path.exists(CONFIG_FILE):
         config['SETTINGS'] = {
             'api_key': '',
-            'shortcut': 'ctrl+c+c'
+            'shortcut': 'ctrl+c+c',
+            'topmost': 'True' # 新增：默认开启置顶
         }
         with open(CONFIG_FILE, 'w', encoding='utf-8') as configfile:
             config.write(configfile)
     else:
         config.read(CONFIG_FILE, encoding='utf-8')
+        # 向下兼容：如果旧的配置文件里没有 topmost 选项，则自动补全
+        if 'topmost' not in config['SETTINGS']:
+            config['SETTINGS']['topmost'] = 'True'
 
-def save_config(api_key, shortcut):
+def save_config(api_key, shortcut, topmost):
     config['SETTINGS']['api_key'] = api_key
     config['SETTINGS']['shortcut'] = shortcut
+    config['SETTINGS']['topmost'] = str(topmost) # 将布尔值转为字符串保存
     with open(CONFIG_FILE, 'w', encoding='utf-8') as configfile:
         config.write(configfile)
 
@@ -35,10 +40,12 @@ class TranslatorApp(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        # 恢复简洁的窗口标题
         self.title("Gemini 翻译工具") 
         self.geometry("600x450")
-        self.attributes("-topmost", True) # 保持窗口在最前，方便使用
+        
+        # 读取配置并应用初始的置顶状态
+        is_topmost = config['SETTINGS'].getboolean('topmost', fallback=True)
+        self.attributes("-topmost", is_topmost) 
         
         # 布局配置
         self.grid_rowconfigure(0, weight=1)
@@ -69,7 +76,7 @@ class TranslatorApp(ctk.CTk):
 
         # 清空按钮
         self.clear_btn = ctk.CTkButton(self.button_frame, text="清 空", width=80, 
-                                       fg_color="gray50", hover_color="gray40", # 设置为灰色系以便与翻译按钮区分
+                                       fg_color="gray50", hover_color="gray40", 
                                        command=self.clear_text)
         self.clear_btn.grid(row=1, column=0, sticky="n", pady=(5, 0))
 
@@ -126,7 +133,7 @@ class TranslatorApp(ctk.CTk):
                 client = genai.Client(api_key=api_key)
                 # 调用生成接口
                 response = client.models.generate_content(
-                    model='gemini-2.5-flash', # 推荐使用 flash 模型，翻译速度最快
+                    model='gemini-2.5-flash', 
                     contents=f"请将以下内容翻译为中文（如果是中文则直接翻译为英文），只需要输出翻译后的结果，不要多余的解释：\n{text_to_translate}"
                 )
                 result_text = response.text
@@ -149,28 +156,41 @@ class TranslatorApp(ctk.CTk):
         # 设置弹窗
         settings_window = ctk.CTkToplevel(self)
         settings_window.title("设置")
-        # 稍微加高了窗口以容纳底部的版本号
-        settings_window.geometry("400x280")
+        # 增加高度以容纳新的复选框
+        settings_window.geometry("400x320")
         settings_window.attributes("-topmost", True)
         settings_window.grab_set() # 模态窗口
 
+        # API Key 输入
         ctk.CTkLabel(settings_window, text="Gemini API Key:").pack(pady=(20, 5), padx=20, anchor="w")
         api_entry = ctk.CTkEntry(settings_window, width=360)
         api_entry.pack(padx=20)
         api_entry.insert(0, config['SETTINGS'].get('api_key', ''))
 
+        # 快捷键说明
         ctk.CTkLabel(settings_window, text="快捷键 (如 ctrl+c+c, 暂仅支持说明展示):").pack(pady=(15, 5), padx=20, anchor="w")
         shortcut_entry = ctk.CTkEntry(settings_window, width=360)
         shortcut_entry.pack(padx=20)
         shortcut_entry.insert(0, config['SETTINGS'].get('shortcut', 'ctrl+c+c'))
 
+        # 新增：窗口置顶复选框
+        # 读取当前配置中的布尔值，并绑定到复选框变量
+        current_topmost = config['SETTINGS'].getboolean('topmost', fallback=True)
+        topmost_var = ctk.BooleanVar(value=current_topmost)
+        topmost_checkbox = ctk.CTkCheckBox(settings_window, text="📌 窗口始终保持在最前 (置顶)", 
+                                           variable=topmost_var)
+        topmost_checkbox.pack(pady=(15, 5), padx=20, anchor="w")
+
         def save_and_close():
-            save_config(api_entry.get(), shortcut_entry.get())
+            # 保存所有设置到 .ini 文件
+            save_config(api_entry.get(), shortcut_entry.get(), topmost_var.get())
+            # 即时生效：立刻改变主窗口的置顶状态
+            self.attributes("-topmost", topmost_var.get())
             settings_window.destroy()
 
-        ctk.CTkButton(settings_window, text="保存", command=save_and_close).pack(pady=(25, 10))
+        ctk.CTkButton(settings_window, text="保存", command=save_and_close).pack(pady=(20, 10))
         
-        # 新增：将版本号显示在设置页面的最下方
+        # 版本号
         ctk.CTkLabel(settings_window, text="v1.0.001", text_color="gray50", font=("Microsoft YaHei", 10)).pack(side="bottom", pady=10)
 
     def setup_global_hotkey(self):
@@ -195,8 +215,14 @@ class TranslatorApp(ctk.CTk):
         time.sleep(0.1)
         clipboard_text = pyperclip.paste()
         if clipboard_text:
-            # 唤醒窗口并填充输入框
+            # 唤醒窗口
             self.deiconify()
+            
+            # 如果当前没有置顶，唤醒时将窗口拉到最前面获取焦点
+            if not config['SETTINGS'].getboolean('topmost', fallback=True):
+                self.focus_force()
+                
+            # 填充输入框并翻译
             self.input_textbox.delete("1.0", "end")
             self.input_textbox.insert("end", clipboard_text)
             self.perform_translation(clipboard_text)
