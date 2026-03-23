@@ -1,0 +1,16 @@
+# 配置文件 (包含敏感 API Key)
+config.ini
+
+# Python 缓存
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 虚拟环境 (如果有)
+venv/
+env/
+
+# 打包生成的文件夹和文件
+build/
+dist/
+*.spec

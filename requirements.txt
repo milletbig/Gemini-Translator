@@ -1,0 +1,4 @@
+customtkinter
+keyboard
+pyperclip
+google-genai
