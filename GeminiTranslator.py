@@ -16,20 +16,24 @@ def load_config():
         config['SETTINGS'] = {
             'api_key': '',
             'shortcut': 'ctrl+c+c',
-            'topmost': 'True' # 新增：默认开启置顶
+            'topmost': 'True',
+            'model': 'gemini-2.5-flash' # 新增：默认模型设置
         }
         with open(CONFIG_FILE, 'w', encoding='utf-8') as configfile:
             config.write(configfile)
     else:
         config.read(CONFIG_FILE, encoding='utf-8')
-        # 向下兼容：如果旧的配置文件里没有 topmost 选项，则自动补全
+        # 向下兼容：如果旧的配置文件里没有 topmost 或 model 选项，则自动补全
         if 'topmost' not in config['SETTINGS']:
             config['SETTINGS']['topmost'] = 'True'
+        if 'model' not in config['SETTINGS']:
+            config['SETTINGS']['model'] = 'gemini-2.5-flash'
 
-def save_config(api_key, shortcut, topmost):
+def save_config(api_key, shortcut, topmost, model):
     config['SETTINGS']['api_key'] = api_key
     config['SETTINGS']['shortcut'] = shortcut
-    config['SETTINGS']['topmost'] = str(topmost) # 将布尔值转为字符串保存
+    config['SETTINGS']['topmost'] = str(topmost)
+    config['SETTINGS']['model'] = model # 保存选择的模型
     with open(CONFIG_FILE, 'w', encoding='utf-8') as configfile:
         config.write(configfile)
 
@@ -118,7 +122,10 @@ class TranslatorApp(ctk.CTk):
         self.translate_btn.configure(text="翻译中...", state="disabled")
         self.output_textbox.configure(state="normal")
         self.output_textbox.delete("1.0", "end")
-        self.output_textbox.insert("end", "正在调用 Gemini API...\n")
+        
+        # 获取当前选择的模型名称并显示在提示信息中
+        selected_model = config['SETTINGS'].get('model', 'gemini-2.5-flash')
+        self.output_textbox.insert("end", f"正在调用 {selected_model} 进行翻译...\n")
         self.output_textbox.configure(state="disabled")
         self.update()
 
@@ -131,9 +138,9 @@ class TranslatorApp(ctk.CTk):
             try:
                 # 初始化新版客户端
                 client = genai.Client(api_key=api_key)
-                # 调用生成接口
+                # 调用生成接口，动态传入配置中的模型
                 response = client.models.generate_content(
-                    model='gemini-2.5-flash', 
+                    model=selected_model, 
                     contents=f"请将以下内容翻译为中文（如果是中文则直接翻译为英文），只需要输出翻译后的结果，不要多余的解释：\n{text_to_translate}"
                 )
                 result_text = response.text
@@ -156,25 +163,32 @@ class TranslatorApp(ctk.CTk):
         # 设置弹窗
         settings_window = ctk.CTkToplevel(self)
         settings_window.title("设置")
-        # 增加高度以容纳新的复选框
-        settings_window.geometry("400x320")
+        # 增加高度以容纳模型选择框
+        settings_window.geometry("400x380")
         settings_window.attributes("-topmost", True)
         settings_window.grab_set() # 模态窗口
 
-        # API Key 输入
-        ctk.CTkLabel(settings_window, text="Gemini API Key:").pack(pady=(20, 5), padx=20, anchor="w")
+        # 1. API Key 输入
+        ctk.CTkLabel(settings_window, text="Gemini API Key:").pack(pady=(10, 5), padx=20, anchor="w")
         api_entry = ctk.CTkEntry(settings_window, width=360)
         api_entry.pack(padx=20)
         api_entry.insert(0, config['SETTINGS'].get('api_key', ''))
 
-        # 快捷键说明
+        # 2. 模型选择下拉框 (新增)
+        ctk.CTkLabel(settings_window, text="模型选择 (Model):").pack(pady=(15, 5), padx=20, anchor="w")
+        # 预设几个常用的 Gemini 模型供选择
+        available_models = ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"]
+        model_var = ctk.StringVar(value=config['SETTINGS'].get('model', 'gemini-2.5-flash'))
+        model_dropdown = ctk.CTkOptionMenu(settings_window, values=available_models, variable=model_var, width=360)
+        model_dropdown.pack(padx=20)
+
+        # 3. 快捷键说明
         ctk.CTkLabel(settings_window, text="快捷键 (如 ctrl+c+c, 暂仅支持说明展示):").pack(pady=(15, 5), padx=20, anchor="w")
         shortcut_entry = ctk.CTkEntry(settings_window, width=360)
         shortcut_entry.pack(padx=20)
         shortcut_entry.insert(0, config['SETTINGS'].get('shortcut', 'ctrl+c+c'))
 
-        # 新增：窗口置顶复选框
-        # 读取当前配置中的布尔值，并绑定到复选框变量
+        # 4. 窗口置顶复选框
         current_topmost = config['SETTINGS'].getboolean('topmost', fallback=True)
         topmost_var = ctk.BooleanVar(value=current_topmost)
         topmost_checkbox = ctk.CTkCheckBox(settings_window, text="📌 窗口始终保持在最前 (置顶)", 
@@ -182,16 +196,16 @@ class TranslatorApp(ctk.CTk):
         topmost_checkbox.pack(pady=(15, 5), padx=20, anchor="w")
 
         def save_and_close():
-            # 保存所有设置到 .ini 文件
-            save_config(api_entry.get(), shortcut_entry.get(), topmost_var.get())
+            # 保存所有设置到 .ini 文件，包含选择的模型
+            save_config(api_entry.get(), shortcut_entry.get(), topmost_var.get(), model_var.get())
             # 即时生效：立刻改变主窗口的置顶状态
             self.attributes("-topmost", topmost_var.get())
             settings_window.destroy()
 
-        ctk.CTkButton(settings_window, text="保存", command=save_and_close).pack(pady=(20, 10))
+        ctk.CTkButton(settings_window, text="保存", command=save_and_close).pack(pady=(15, 5))
         
-        # 版本号
-        ctk.CTkLabel(settings_window, text="v1.0.001", text_color="gray50", font=("Microsoft YaHei", 10)).pack(side="bottom", pady=10)
+        # 版本号更新为 v1.0.002
+        ctk.CTkLabel(settings_window, text="v1.0.002", text_color="gray50", font=("Microsoft YaHei", 10)).pack(side="bottom", pady=5)
 
     def setup_global_hotkey(self):
         # 使用 keyboard 库在后台线程监听双击 Ctrl+C
