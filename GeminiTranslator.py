@@ -165,8 +165,8 @@ class TranslatorApp(ctk.CTk):
         ctk.CTkLabel(model_label_frame, text="模型选择 (Model):").pack(side="left")
         
         # 初始默认列表 (合并已保存的配置模型)
-        default_models = ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash", "gemini-1.5-flash"]
-        saved_model = config['SETTINGS'].get('model', 'gemini-2.5-flash')
+        default_models = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-3-flash-preview", "gemini-3.1-flash-lite-preview"]
+        saved_model = config['SETTINGS'].get('model', 'gemini-3.1-flash-lite-preview')
         if saved_model not in default_models:
             default_models.insert(0, saved_model)
             
