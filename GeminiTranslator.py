@@ -7,7 +7,7 @@ import pyperclip
 import os
 from google import genai
 
-# --- 配置初始化 (.ini 格式) ---
+# --- 配置初始化 (.ini) ---
 CONFIG_FILE = 'config.ini'
 config = configparser.ConfigParser()
 
@@ -114,7 +114,7 @@ class TranslatorApp(ctk.CTk):
         self.output_textbox.configure(state="normal")
         self.output_textbox.delete("1.0", "end")
         
-        selected_model = config['SETTINGS'].get('model', 'gemini-2.5-flash')
+        selected_model = config['SETTINGS'].get('model', 'gemini-3.1-flash-lite')
         self.output_textbox.insert("end", f"正在调用 {selected_model} 进行翻译...\n")
         self.output_textbox.configure(state="disabled")
         self.update()
@@ -164,9 +164,9 @@ class TranslatorApp(ctk.CTk):
         
         ctk.CTkLabel(model_label_frame, text="模型选择 (Model):").pack(side="left")
         
-        # 初始默认列表 (合并已保存的配置模型)
-        default_models = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-3-flash-preview", "gemini-3.1-flash-lite-preview"]
-        saved_model = config['SETTINGS'].get('model', 'gemini-3.1-flash-lite-preview')
+        # 初始默认列表
+        default_models = ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.5-flash-lite", "gemini-3-flash-preview", "gemini-3.1-flash-lite", "gemini-3.5-flash"]
+        saved_model = config['SETTINGS'].get('model', 'gemini-3.1-flash-lite')
         if saved_model not in default_models:
             default_models.insert(0, saved_model)
             
@@ -193,7 +193,7 @@ class TranslatorApp(ctk.CTk):
                         fetched_models.append(name)
                 
                 if fetched_models:
-                    # 去重并降序排序 (让新模型排在前面)
+                    # 去重并降序排序
                     fetched_models = sorted(list(set(fetched_models)), reverse=True)
                     model_dropdown.configure(values=fetched_models)
                     if model_var.get() not in fetched_models:
@@ -237,8 +237,8 @@ class TranslatorApp(ctk.CTk):
 
         ctk.CTkButton(settings_window, text="保存", command=save_and_close).pack(pady=(15, 5))
         
-        # 版本号更新为 v1.0.003
-        ctk.CTkLabel(settings_window, text="v1.0.003", text_color="gray50", font=("Microsoft YaHei", 10)).pack(side="bottom", pady=5)
+        # 版本号更新为 v1.0.004
+        ctk.CTkLabel(settings_window, text="v1.0.004", text_color="gray50", font=("Microsoft YaHei", 10)).pack(side="bottom", pady=5)
 
     def setup_global_hotkey(self):
         self.last_c_time = 0
