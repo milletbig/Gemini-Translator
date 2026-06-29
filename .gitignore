@@ -15,4 +15,4 @@ build/
 dist/
 *.spec
 
-Compile.py
+Compile.ps1
