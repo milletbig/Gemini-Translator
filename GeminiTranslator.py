@@ -17,7 +17,7 @@ def load_config():
             'api_key': '',
             'shortcut': 'ctrl+c+c',
             'topmost': 'True',
-            'model': 'gemini-2.5-flash'
+            'model': 'gemini-3.1-flash-lite'
         }
         with open(CONFIG_FILE, 'w', encoding='utf-8') as configfile:
             config.write(configfile)
@@ -26,7 +26,7 @@ def load_config():
         if 'topmost' not in config['SETTINGS']:
             config['SETTINGS']['topmost'] = 'True'
         if 'model' not in config['SETTINGS']:
-            config['SETTINGS']['model'] = 'gemini-2.5-flash'
+            config['SETTINGS']['model'] = 'gemini-3.1-flash-liteh'
 
 def save_config(api_key, shortcut, topmost, model):
     config['SETTINGS']['api_key'] = api_key
