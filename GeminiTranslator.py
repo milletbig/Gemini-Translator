@@ -26,7 +26,7 @@ def load_config():
         if 'topmost' not in config['SETTINGS']:
             config['SETTINGS']['topmost'] = 'True'
         if 'model' not in config['SETTINGS']:
-            config['SETTINGS']['model'] = 'gemini-3.1-flash-liteh'
+            config['SETTINGS']['model'] = 'gemini-3.1-flash-lite'
 
 def save_config(api_key, shortcut, topmost, model):
     config['SETTINGS']['api_key'] = api_key
@@ -165,7 +165,7 @@ class TranslatorApp(ctk.CTk):
         ctk.CTkLabel(model_label_frame, text="模型选择 (Model):").pack(side="left")
         
         # 初始默认列表
-        default_models = ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.5-flash-lite", "gemini-3-flash-preview", "gemini-3.1-flash-lite", "gemini-3.5-flash"]
+        default_models = ["gemini-3.5-flash-lite", "gemini-3.6-flash", "gemini-2.5-flash", "gemini-2.5-flash-lite"]
         saved_model = config['SETTINGS'].get('model', 'gemini-3.1-flash-lite')
         if saved_model not in default_models:
             default_models.insert(0, saved_model)
