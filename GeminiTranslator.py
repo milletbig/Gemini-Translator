@@ -166,7 +166,7 @@ class TranslatorApp(ctk.CTk):
         
         # 初始默认列表
         default_models = ["gemini-3.5-flash-lite", "gemini-3.6-flash", "gemini-2.5-flash", "gemini-2.5-flash-lite"]
-        saved_model = config['SETTINGS'].get('model', 'gemini-3.1-flash-lite')
+        saved_model = config['SETTINGS'].get('model', 'gemini-3.5-flash-lite')
         if saved_model not in default_models:
             default_models.insert(0, saved_model)
             
